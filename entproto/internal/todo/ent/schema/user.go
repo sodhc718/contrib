@@ -180,11 +180,11 @@ func (User) Fields() []ent.Field {
 
 func (User) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.To("group", Group.Type).
-			Unique().
+		edge.To("groups", Group.Type).
 			Annotations(
-				entproto.Field(7),
-			),
+				entproto.Field(25, entproto.EdgeSchema(26)),
+			).
+			Through("joined_groups", UserGroup.Type),
 		edge.To("attachment", Attachment.Type).
 			Unique().
 			Annotations(

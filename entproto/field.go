@@ -36,9 +36,10 @@ func Field(num int, options ...FieldOption) schema.Annotation {
 }
 
 type pbfield struct {
-	Number   int
-	Type     descriptorpb.FieldDescriptorProto_Type
-	TypeName string
+	Number     int
+	Type       descriptorpb.FieldDescriptorProto_Type
+	TypeName   string
+	EdgeSchema *pbfield
 }
 
 func (f pbfield) Name() string {
@@ -67,6 +68,16 @@ func TypeName(n string) FieldOption {
 	}
 }
 
+func EdgeSchema(num int, options ...FieldOption) FieldOption {
+	return func(p *pbfield) {
+		f := pbfield{Number: num}
+		for _, apply := range options {
+			apply(&f)
+		}
+		p.EdgeSchema = &f
+	}
+}
+
 func extractFieldAnnotation(fld *gen.Field) (*pbfield, error) {
 	annot, ok := fld.Annotations[FieldAnnotation]
 	if !ok {
@@ -84,6 +95,10 @@ func extractFieldAnnotation(fld *gen.Field) (*pbfield, error) {
 }
 
 func extractEdgeAnnotation(edge *gen.Edge) (*pbfield, error) {
+	if edge.Type.IsEdgeSchema() {
+		return extractEdgeSchemaAnnotation(edge)
+	}
+
 	annot, ok := edge.Annotations[FieldAnnotation]
 	if !ok {
 		return nil, fmt.Errorf("entproto: edge %q does not have an entproto.Field annotation", edge.Name)
@@ -96,5 +111,35 @@ func extractEdgeAnnotation(edge *gen.Edge) (*pbfield, error) {
 			edge.Name, err)
 	}
 
+	return &out, nil
+}
+
+func extractEdgeSchemaAnnotation(edge *gen.Edge) (*pbfield, error) {
+	var srcVertice *gen.Edge
+	if edge.Type.EdgeSchema.From != nil {
+		srcVertice = edge.Type.EdgeSchema.From
+	}
+	if edge.Type.EdgeSchema.To != nil {
+		srcVertice = edge.Type.EdgeSchema.To
+	}
+
+	srcAnnot, ok := srcVertice.Annotations[FieldAnnotation]
+	if !ok {
+		return nil, fmt.Errorf("entproto: edge %q does not have an entproto.Field annotation", srcVertice.Name)
+	}
+
+	var rootOut pbfield
+	err := mapstructure.Decode(srcAnnot, &rootOut)
+	if err != nil {
+		return nil, fmt.Errorf("entproto: unable to decode entproto.Field annotation for field %q: %w",
+			edge.Name, err)
+	}
+
+	var out pbfield
+	err = mapstructure.Decode(out, &rootOut.EdgeSchema)
+	if err != nil {
+		return nil, fmt.Errorf("entproto: unable to decode entproto.Field edge schema annotation for field %q: %w",
+			edge.Name, err)
+	}
 	return &out, nil
 }
