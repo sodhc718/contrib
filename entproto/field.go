@@ -128,15 +128,15 @@ func extractEdgeSchemaAnnotation(edge *gen.Edge) (*pbfield, error) {
 		return nil, fmt.Errorf("entproto: edge %q does not have an entproto.Field annotation", srcVertice.Name)
 	}
 
-	var rootOut pbfield
-	err := mapstructure.Decode(srcAnnot, &rootOut)
+	var srcOut pbfield
+	err := mapstructure.Decode(srcAnnot, &srcOut)
 	if err != nil {
 		return nil, fmt.Errorf("entproto: unable to decode entproto.Field annotation for field %q: %w",
 			edge.Name, err)
 	}
 
 	var out pbfield
-	err = mapstructure.Decode(out, &rootOut.EdgeSchema)
+	err = mapstructure.Decode(srcOut.EdgeSchema, &out)
 	if err != nil {
 		return nil, fmt.Errorf("entproto: unable to decode entproto.Field edge schema annotation for field %q: %w",
 			edge.Name, err)
