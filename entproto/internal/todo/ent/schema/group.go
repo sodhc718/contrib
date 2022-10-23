@@ -38,10 +38,9 @@ func (Group) Fields() []ent.Field {
 func (Group) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("users", User.Type).
-			Ref("group").
-			Annotations(
-				entproto.Field(3),
-			),
+			Annotations(entproto.Field(3, entproto.EdgeSchema(4))).
+			Ref("groups").
+			Through("joined_users", UserGroup.Type),
 	}
 }
 
